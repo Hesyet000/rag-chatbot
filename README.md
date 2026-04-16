@@ -2,11 +2,7 @@
 
 A full-stack document intelligence application built on Retrieval-Augmented Generation. Upload PDFs, ask questions in plain language, and get answers cited directly from the source — with multi-turn conversation memory and built-in hallucination guardrails.
 
-**Live:** https://rag-chatbot-frontend-afl9.onrender.com &nbsp;·&nbsp; **API:** https://rag-chatbot-bikt.onrender.com/docs
-
 ---
-
-## What problem this solves
 
 Standard LLM integrations hallucinate — the model fills gaps in its knowledge with plausible-sounding fiction. For any application where accuracy matters (legal, medical, internal knowledge bases, research), that's a non-starter.
 
@@ -66,7 +62,7 @@ Question → embedding → ChromaDB cosine search → top 5 chunks
 
 ## Frontend
 
-Built with Streamlit. Key decisions:
+Built with Streamlit. 
 
 **Session state for conversation memory** — Streamlit re-renders the entire page on every interaction. Conversation history is stored in `st.session_state` as a list of `{question, answer}` pairs and sent with every API call. This keeps the backend completely stateless while preserving multi-turn context on the client side — no server-side session management needed.
 
@@ -93,7 +89,7 @@ Built with FastAPI. Four endpoints:
 
 ---
 
-## AI / ML Layer
+## Specific design decisions
 
 **Why text-embedding-3-small over larger models** — embedding quality scales with model size, but so does cost and latency. `text-embedding-3-small` produces 1536-dimensional vectors at $0.02/million tokens with retrieval quality that's sufficient for document Q&A. The marginal gain from `text-embedding-3-large` doesn't justify 5× the cost for this use case.
 
@@ -164,18 +160,6 @@ Both services deploy to Render from the same GitHub repository. The `render.yaml
 The frontend service receives the backend's public URL as `API_URL` at deploy time. No hardcoded URLs anywhere in the code.
 
 **Free tier caveat** — Render's free tier uses an ephemeral filesystem. ChromaDB data doesn't survive service restarts. For a persistent production deployment, ChromaDB local would be replaced with a managed vector database. The `get_chroma_collection()` abstraction in `retriever.py` and `ingest.py` makes this swap localized to one function in each file.
-
----
-
-## If this were production
-
-A few things would change:
-
-- **Vector database** — swap ChromaDB local for Pinecone or Weaviate for persistent, scalable storage
-- **Authentication** — per-user document collections keyed by session or user ID; right now all uploads go into a shared collection
-- **Concurrent writes** — add a queue or write lock for simultaneous uploads to the same collection
-- **OCR fallback** — pdfplumber extracts embedded text only; scanned PDFs return nothing; Tesseract would handle that
-- **Streaming responses** — GPT-4o supports streaming tokens; adding it would make the UI feel significantly faster for long answers
 
 ---
 
